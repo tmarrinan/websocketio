@@ -1,70 +1,13 @@
-// SAGE2 is available for use under the SAGE2 Software License
-//
-// University of Illinois at Chicago's Electronic Visualization Laboratory (EVL)
-// and University of Hawai'i at Manoa's Laboratory for Advanced Visualization and
-// Applications (LAVA)
-//
-// See full text, terms and conditions in the LICENSE.txt included file
-//
-// Copyright (c) 2014
-
-/**
- * @module client
- * @submodule WebsocketIO
- */
-
-/**
- * Lightweight object around websocket, handles string and binary communication
- *
- * @class WebsocketIO
- * @constructor
- */
 function WebSocketIO(url) {
 	if (url !== undefined && url !== null) this.url = url;
 	else this.url = (window.location.protocol === "https:" ? "wss" : "ws") + "://" + window.location.host + "/" + window.location.pathname.split("/")[1];
 
-	/**
-	 * websocket object handling the communication with the server
-	 *
-	 * @property ws
-	 * @type WebSocket
-	 */
 	this.ws = null;
-	/**
-	 * list of messages to be handled (name + callback)
-	 *
-	 * @property messages
-	 * @type Object
-	 */
 	this.messages = {};
-	/**
-	 * number of aliases created for listeners
-	 *
-	 * @property aliasCount
-	 * @type Integer
-	 */
 	this.aliasCount = 1;
-	/**
-	 * list of listeners on other side of connection
-	 *
-	 * @property remoteListeners
-	 * @type Object
-	 */
 	this.remoteListeners = {"#WSIO#addListener": "0000"};
-	/**
-	 * list of local listeners on this side of connection
-	 *
-	 * @property localListeners
-	 * @type Object
-	 */
 	this.localListeners = {"0000": "#WSIO#addListener"};
 
-	/**
-	* Open a websocket
-	*
-	* @method open
-	* @param callback {Function} function to be called when the socket is ready
-	*/
 	this.open = function(callback) {
 		var _this = this;
 
@@ -113,13 +56,6 @@ function WebSocketIO(url) {
 		};
 	};
 
-	/**
-	* Set a message handler for a given name
-	*
-	* @method on
-	* @param name {String} name for the handler
-	* @param callback {Function} handler to be called for a given name
-	*/
 	this.on = function(name, callback) {
 		var alias = ("0000" + this.aliasCount.toString(16)).substr(-4);
 		this.localListeners[alias] = name;
@@ -129,13 +65,6 @@ function WebSocketIO(url) {
 		this.emit('#WSIO#addListener', {listener: name, alias: alias});
 	};
 
-	/**
-	* Send a message with a given name and payload (format> f:name d:payload)
-	*
-	* @method emit
-	* @param name {String} name of the message (i.e. RPC)
-	* @param data {Object} data to be sent with the message
-	*/
 	this.emit = function(name, data, attempts) {
 		if (name === null || name === "") {
 			console.log("Error: no message name specified");
@@ -181,16 +110,10 @@ function WebSocketIO(url) {
 		}
 	};
 
-	/**
-	* Deliberate close function
-	*
-	* @method emit
-	*/
 	this.close = function() {
 		// disable onclose handler first
 		this.ws.onclose = function () {};
 		// then close
 		this.ws.close();
     };
-
 }
