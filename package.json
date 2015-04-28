@@ -1,0 +1,20 @@
+{
+  "name": "websocketio",
+  "version": "0.0.1",
+  "description": "WebSocket high-level abstraction",
+  "main": "node-websocketio.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tmarrinan/websocketio.git"
+  },
+  "dependencies": {
+    "ws": "latest"
+  },
+  "keywords": [
+    "WebSocket",
+    "server",
+    "client"
+  ],
+  "author": "Thomas Marrinan",
+  "license": "BSD-3-Clause"
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+<meta charset="utf-8" />
+<title>WebSocketIO Test</title>
+<script type="text/javascript" src="src/websocketio.js"></script>
+<script type="text/javascript">
+var wsio;
+function init() {
+	wsio = new WebSocketIO();
+	wsio.open(function() {
+		console.log("open websocket");
+		setupListeners();
+
+		var i;
+		var obj = {x: 10, y: 20, w: 200, h: 150};
+		var bin = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+		wsio.emit('requestStringMessage', obj);
+		wsio.emit('requestBinaryMessage', bin);
+	});
+}
+function setupListeners() {
+	wsio.on('stringMessage', function(data) {
+		console.log(data);
+	});
+
+	wsio.on('binaryMessage', function(data) {
+		console.log(data);
+	});
+}
+</script>
+</head>
+
+<body onload="init()">
+	<p id="stringMessage"></p>
+	<p id="binaryMessage"></p>
+</body>
+</html>
+
