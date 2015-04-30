@@ -86,7 +86,6 @@ function WebsocketIO(ws, strictSSL, openCallback) {
 						String.fromCharCode(message[2]) +
 						String.fromCharCode(message[3]);
 			fName = _this.localListeners[func];
-
 			var buf = message.slice(4, message.length);
 			_this.messages[fName](_this, buf);
 		}

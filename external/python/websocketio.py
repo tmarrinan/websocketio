@@ -16,8 +16,6 @@ class WebSocketIO:
 		self.localListeners = {"0000": "#WSIO#addListener"};
 		
 	def open(self, callback):
-		print "WebSocketIO> connected to " + self.address
-		
 		self.ws = websocket.WebSocketApp(self.address, on_message = self.on_message, on_error = self.on_error, on_close = self.on_close)
 		self.openCallback = callback
 		
@@ -29,6 +27,7 @@ class WebSocketIO:
 			print "exit"
     
 	def on_open(self, ws):
+		print "WebSocketIO> connected to " + self.address
 		thread.start_new_thread(self.openCallback, ())
     
 	def on_message(self, ws, message):
