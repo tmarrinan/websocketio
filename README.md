@@ -7,6 +7,8 @@ WebSocket high-level abstraction
  * Support for external applications (Python, C++)
  * Fast streaming for high-performance networking
 
+Client side JS: [https://rawgit.com/tmarrinan/websocketio/master/example/public/src/websocketio.js](https://rawgit.com/tmarrinan/websocketio/master/example/public/src/websocketio.js)
+
 ```
 var WebSocketIO = require('websocketio');
 
