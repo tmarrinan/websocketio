@@ -9,6 +9,12 @@ WebSocket high-level abstraction
 
 Client side JS: [https://rawgit.com/tmarrinan/websocketio/master/example/public/src/websocketio.js](https://rawgit.com/tmarrinan/websocketio/master/example/public/src/websocketio.js)
 
+### Dependencies ###
+ * Python
+     * websocket-client: install with `pip install websocket-client`
+ * C++
+     * websocketpp: initialize with `git submodule update --init`
+
 ```
 var WebSocketIO = require('websocketio');
 
