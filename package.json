@@ -1,6 +1,6 @@
 {
   "name": "websocketio",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WebSocket high-level abstraction",
   "main": "node-websocketio.js",
   "repository": {
