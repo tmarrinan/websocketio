@@ -7,7 +7,7 @@ ifeq ($(UNAME_S),Darwin)
 	LIBRARIES=-lboost_system-mt -lboost_random-mt -lboost_thread-mt -lssl -lcrypto
 else
 	LIB=
-	LIBRARIES=-lm -ldl -lboost_system -lboost_random -lboost_thread -lssl -lcrypto -lrt
+	LIBRARIES=-lboost_system-mt -lboost_random-mt -lboost_thread-mt -lssl -lcrypto -lpthread
 endif
 
 
