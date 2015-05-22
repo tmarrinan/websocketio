@@ -11,9 +11,10 @@ Client side JS: [https://rawgit.com/tmarrinan/websocketio/master/example/public/
 
 ### Dependencies ###
  * Python
-     * websocket-client: install with `pip install websocket-client`
+     * tornado: install with `pip install tornado`
  * C++
      * websocketpp: initialize with `git submodule update --init`
+     * boost [c++ libraries](http://www.boost.org/)
 
 ```
 var WebSocketIO = require('websocketio');
