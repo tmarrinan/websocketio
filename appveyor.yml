@@ -24,7 +24,7 @@ install:
 
     npm install --production --msvs_version=2013
 
-    dir
+build_script:
 
 after_build:
 - 7z a -ttar -so websocketio_win_%nodejs_version%.tar C:\projects\websocketio\ | 7z a -si websocketio_win_%nodejs_version%.tar.gz
