@@ -22,15 +22,9 @@ install:
 
     node -v
 
-    npm config set bin-links false
-
     npm install --production --msvs_version=2013
 
     dir
-
-build:
-  parallel: true
-  verbosity: minimal
 
 after_build:
 - 7z a -ttar -so websocketio_win_%nodejs_version%.tar C:\projects\websocketio\ | 7z a -si websocketio_win_%nodejs_version%.tar.gz
