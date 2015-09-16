@@ -43,7 +43,7 @@ deploy:
   password:
     secure: nJ5DR4tXepEgiOsXpf4omw==
   folder: /
-  artifact: node-demux-win64
+  artifact: websocketio-win64
 
 after_deploy:
 - dir
