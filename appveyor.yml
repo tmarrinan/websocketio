@@ -26,11 +26,11 @@ install:
 
     npm install --msvs_version=2013
 
-    7z a -ttar -so websocketio_win_%nodejs_version%.tar C:\projects\websocketio\ | 7z a -si websocketio_win_%nodejs_version%.tar.gz
-
 build: off
 
-test: off
+before_deploy::
+- ps: >-
+    7z a -ttar -so websocketio_win_%nodejs_version%.tar C:\projects\websocketio\ | 7z a -si websocketio_win_%nodejs_version%.tar.gz
 
 artifacts:
 - path: websocketio_win_$(nodejs_version).tar.gz
