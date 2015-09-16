@@ -22,7 +22,7 @@ install:
 
     node -v
 
-    npm install --production --msvs_version=2013
+    npm install --msvs_version=2013
 
 build: off
 
