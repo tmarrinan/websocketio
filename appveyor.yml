@@ -22,11 +22,7 @@ install:
 
     node -v
 
-    dir
-
-    cd %APPVEYOR_BUILD_FOLDER%
-
-    dir
+    npm config set bin-links false
 
     npm install --production --msvs_version=2013
 
