@@ -6,8 +6,6 @@ var fs   = require('fs');
 
 if (process.argv.length < 6) {
 	console.log("error: please specify user_name, password, repository, and file_to_upload");
-	console.log(process.argv.length);
-	console.log(process.argv);
 	process.exit(1);
 }
 
