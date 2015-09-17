@@ -24,7 +24,9 @@ install:
 
 script:
   - mkdir /Users/travis/build/tmarrinan/Build
-  - tar czf /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz .
+  - cd ..
+  - tar czf /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz websocketio
+  - cd websocketio
   - mv /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz .
   - node bitbucket_upload.js tmarrinan $BITBUCKET_PASSWORD tmarrinan/binary-modules websocketio_mac_${NODE_VERSION}.tar.gz
   - ls -a
