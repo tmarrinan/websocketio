@@ -23,6 +23,7 @@ script:
   - mkdir /Users/travis/build/tmarrinan/Build
   - tar czf /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz .
   - mv /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz .
+  - echo $BITBUCKET_PASSWORD
   - node bitbucket_upload.js tmarrinan $BITBUCKET_PASSWORD tmarrinan/binary-modules websocketio_mac_${NODE_VERSION}.tar.gz
   - ls -a
 
