@@ -29,6 +29,7 @@ install:
 - 7z a -ttar C:\Build\websocketio_win_%nodejs_version%.tar C:\projects\websocketio\
 - 7z a -tgzip C:\Build\websocketio_win_%nodejs_version%.tar.gz C:\Build\websocketio_win_%nodejs_version%.tar
 - move C:\Build\websocketio_win_%nodejs_version%.tar.gz C:\projects\websocketio
+- curl -O https://bitbucket.org/tmarrinan/binary-modules/raw/master/bitbucket_upload.js
 - node bitbucket_upload.js tmarrinan %BITBUCKET_PASSWORD% tmarrinan/binary-modules websocketio_win_%nodejs_version%.tar.gz
 - dir
 
