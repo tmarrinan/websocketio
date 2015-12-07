@@ -6,15 +6,20 @@ branches:
 
 configuration: Release
 platform: x64
-clone_depth: 5
+
+#clone_depth: 5
+# specific to github and bitbucket: get a ZIP file using REST API
+shallow_clone: true
+
 
 environment:
   BITBUCKET_PASSWORD:
     secure: ah/zb5h/z49InzWbvkFOrw==
   matrix:
-  - nodejs_version: 0.10.36
+  - nodejs_version: 0.10.40
   - nodejs_version: 0.12.7
   - nodejs_version: 4.0.0
+  - nodejs_version: 5.1.0
 
 install:
 - ps: >-
