@@ -3,7 +3,7 @@ os: osx
 language: objective-c
 
 git:
-  depth: 5
+  depth: 1
 
 env:
   global:
@@ -26,7 +26,7 @@ install:
 script:
   - mkdir /Users/travis/build/tmarrinan/Build
   - cd ..
-  - tar czf /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz websocketio
+  - tar --exclude ./websocketio/.git/ -czf /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz websocketio
   - cd websocketio
   - mv /Users/travis/build/tmarrinan/Build/websocketio_mac_${NODE_VERSION}.tar.gz .
   - curl -O https://bitbucket.org/tmarrinan/binary-modules/raw/master/bitbucket_upload.js
