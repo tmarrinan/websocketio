@@ -37,6 +37,8 @@ function WebSocketIO(ws, strictSSL, openCallback) {
 	else
 		this.ws = ws;
 
+	this.id = "";
+	
 	var _this = this;
 	this.messages = {};
 	if (this.ws.readyState === 1) {
