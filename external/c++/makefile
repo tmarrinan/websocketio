@@ -1,9 +1,9 @@
 UNAME_S := $(shell uname -s)
 
 COMPILER=g++
-INC=-I./ -I./websocketpp -I/usr/local/include
+INC=-I./ -I./websocketpp -I/usr/local/include -I/usr/local/opt/openssl/include
 ifeq ($(UNAME_S),Darwin)
-	LIB=-L/usr/local/lib -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib
+	LIB=-L/usr/local/lib -L/usr/local/opt/openssl/lib -L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk/usr/lib
 	LIBRARIES=-lboost_system-mt -lboost_random-mt -lboost_thread-mt -lssl -lcrypto
 else
 	LIB=

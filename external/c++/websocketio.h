@@ -13,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 #include <map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -43,6 +44,9 @@ private:
     void (*m_openCallback)(WebSocketIO*);
     std::map<std::string, void ( *)(WebSocketIO*, boost::property_tree::ptree)> messages;
     std::map<std::string, void ( *)(WebSocketIO*, unsigned char*, long)> messages_bin;
+    std::map<std::string, std::vector<boost::property_tree::ptree> > outbound;
+    std::map<std::string, std::vector<unsigned char*> > outbound_bin;
+    std::map<std::string, std::vector<long> > outbound_bin_l;
     bool m_open;
     bool m_done;
 
@@ -65,6 +69,8 @@ public:
     void on(std::string name, void (*callback)(WebSocketIO*, unsigned char*, long));
     void emit(std::string name, boost::property_tree::ptree data, int attempts=16);
     void emit_binary(std::string name, unsigned char* data, long length, int attempts=16);
+    void removeOutbound(std::string name);
+    void removeOutboundBin(std::string name);
 
 };
 

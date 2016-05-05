@@ -74,6 +74,20 @@ void WebSocketIO::on_message(websocketpp::connection_hdl hdl, message_ptr msg) {
                 std::string listener = json.get<std::string>("d.listener");
                 std::string alias    = json.get<std::string>("d.alias");
                 remoteListeners[listener] = alias;
+                int i;
+                if (outbound.find(listener) != outbound.end()) {
+                    for (i=0; i<outbound[listener].size(); i++) {
+                        emit(listener, outbound[listener][i]);
+                    }
+                    outbound.erase(listener);
+                }
+                if (outbound_bin.find(listener) != outbound_bin.end()) {
+                    for (i=0; i<outbound_bin[listener].size(); i++) {
+                        emit_binary(listener, outbound_bin[listener][i], outbound_bin_l[listener][i]);
+                    }
+                    outbound_bin.erase(listener);
+                    outbound_bin_l.erase(listener);
+                }
             } else {
                 boost::property_tree::ptree data = json.get_child("d");
                 if (messages.find(fName) != messages.end()){
@@ -184,14 +198,14 @@ void WebSocketIO::emit(std::string name, boost::property_tree::ptree data, int a
         boost::property_tree::write_json(oss, root, false);
         send_message(oss.str());
     } else {
-        if (attempts>=0) {
-            boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ios);
-            timer->expires_from_now(boost::posix_time::milliseconds(4));
-            timer->async_wait(boost::bind(&WebSocketIO::emit, this, name, data, attempts-1));
-            timers.push_back(timer);
-        } else {
-            fprintf(stderr, "WebSocketIO> Warning: not sending message, recipient has no listener (%s)\n", name.c_str());
+        if (outbound.find(name) == outbound.end()) {
+            outbound[name] = std::vector<boost::property_tree::ptree>();
         }
+        outbound[name].push_back(data);
+        boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ios);
+        timer->expires_from_now(boost::posix_time::milliseconds(1000));
+        timer->async_wait(boost::bind(&WebSocketIO::removeOutbound, this, name));
+        timers.push_back(timer);
     }
 }
 
@@ -201,13 +215,37 @@ void WebSocketIO::emit_binary(std::string name, unsigned char* data, long length
         out.append(std::string(reinterpret_cast<const char*>(data), length));
         send_binary(out);
     } else {
-        if (attempts>=0) {
-            boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ios);
-            timer->expires_from_now(boost::posix_time::milliseconds(4));
-            timer->async_wait(boost::bind(&WebSocketIO::emit_binary, this, name, data, length, attempts-1));
-            timers.push_back(timer);
-        } else {
-            fprintf(stderr, "WebSocketIO> Warning: not sending message, recipient has no listener (%s)\n", name.c_str());
+        if (outbound_bin.find(name) == outbound_bin.end()) {
+            outbound_bin[name] = std::vector<unsigned char*>();
+            outbound_bin_l[name] = std::vector<long>();
+        }
+        outbound_bin[name].push_back(data);
+        outbound_bin_l[name].push_back(length);
+        boost::asio::deadline_timer* timer = new boost::asio::deadline_timer(ios);
+        timer->expires_from_now(boost::posix_time::milliseconds(1000));
+        timer->async_wait(boost::bind(&WebSocketIO::removeOutboundBin, this, name));
+        timers.push_back(timer);
+    }
+}
+
+void WebSocketIO::removeOutbound(std::string name) {
+    if (outbound.find(name) != outbound.end() && outbound[name].size() > 0) {
+        fprintf(stderr, "WebSocketIO> Warning: not sending message, recipient has no listener (%s)\n", name.c_str());
+        outbound[name].erase(outbound[name].begin() + 0);
+        if (outbound[name].size() == 0) {
+            outbound.erase(name);
+        }
+    }
+}
+
+void WebSocketIO::removeOutboundBin(std::string name) {
+    if (outbound_bin.find(name) != outbound_bin.end() && outbound_bin[name].size() > 0) {
+        fprintf(stderr, "WebSocketIO> Warning: not sending message, recipient has no listener (%s)\n", name.c_str());
+        outbound_bin[name].erase(outbound_bin[name].begin() + 0);
+        outbound_bin_l[name].erase(outbound_bin_l[name].begin() + 0);
+        if (outbound_bin[name].size() == 0) {
+            outbound_bin.erase(name);
+            outbound_bin_l.erase(name);
         }
     }
 }
