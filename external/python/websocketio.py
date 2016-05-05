@@ -14,8 +14,10 @@ class WebSocketIO:
 		self.address = None
 		self.id = None
 		self.openCallback = None
+		self.closeCallback = None
 		self.ioloop = None
 		self.messages = {}
+		self.outbound = {}
 		self.aliasCount = 1
 		self.remoteListeners = {"#WSIO#addListener": "0000"}
 		self.localListeners = {"0000": "#WSIO#addListener"}
@@ -25,23 +27,27 @@ class WebSocketIO:
 			self.ws = address
 			remoteAddress = self.ws.stream.socket.getpeername()
 			self.id = remoteAddress[0] + ":" + str(remoteAddress[1])
-		
+	
 	def open(self, callback):
-		tornado.websocket.websocket_connect(self.address, callback=self.on_open, on_message_callback=self.on_message)
-		self.openCallback = callback
-		
 		try:
 			self.ioloop = tornado.ioloop.IOLoop.instance()
+			tornado.websocket.websocket_connect(self.address, io_loop=self.ioloop, callback=self.on_open, on_message_callback=self.on_message)
+			self.openCallback = callback
 			self.ioloop.start()
 		except KeyboardInterrupt:
 			print "exit"
+
+	def onclose(self, callback):
+		self.closeCallback = callback;
     
 	def on_open(self, ws):
 		print "WebSocketIO> connected to " + self.address
 		self.ws = ws.result()
+		self.ws.on_message = self.on_message
 		remoteAddress = self.ws.stream.socket.getpeername()
 		self.id = remoteAddress[0] + ":" + str(remoteAddress[1])
-		thread.start_new_thread(self.openCallback, (self,))
+		self.openCallback(self)
+		#thread.start_new_thread(self.openCallback, (self,))
     
 	def on_message(self, message):
 		if message == None:
@@ -53,6 +59,13 @@ class WebSocketIO:
 					fName = self.localListeners[msg['f']]
 					if fName == "#WSIO#addListener":
 						self.remoteListeners[msg['d']['listener']] = msg['d']['alias']
+						if msg['d']['listener'] in self.outbound:
+							for i in range(0, len(self.outbound[msg['d']['listener']])):
+								if isinstance(self.outbound[msg['d']['listener']][i], str):
+									self.emitString(msg['d']['listener'], self.outbound[msg['d']['listener']][i])
+								else:
+									self.emit(msg['d']['listener'], self.outbound[msg['d']['listener']][i])
+							del self.outbound[msg['d']['listener']]
 					else:
 						self.messages[fName](self, msg['d']);
 				else:
@@ -67,6 +80,8 @@ class WebSocketIO:
 
 	def on_close(self):
 		print "WebSocketIO> socket closed"
+		if self.closeCallback != None:
+			self.closeCallback(self)
 		self.ioloop.stop()
 
 
@@ -76,10 +91,11 @@ class WebSocketIO:
 		self.messages[name] = callback
 		self.aliasCount += 1
 		self.emit('#WSIO#addListener', {'listener': name, 'alias': alias})
-	
-	def emit(self, name, data, attempts=16):
+
+
+	def emit(self, name, data):
 		if name == None or name == "":
-			print "WebsocketIO> Error: no message name specified"
+			print "WebSocketIO> Error: no message name specified"
 			return
 
 		if name in self.remoteListeners:
@@ -92,16 +108,38 @@ class WebSocketIO:
 				message = {'f': alias, 'd': data}
 				self.ws.write_message(json.dumps(message))
 		else:
-			if attempts >= 0:
-				t = Timer(0.004, self.emit, [name, data, attempts-1])
-				t.start()
-			else:
-				print "WebSocketIO> Warning: not sending message, recipient has no listener (" + name + ")"
+			if not name in self.outbound:
+				self.outbound[name] = [];
+			self.outbound[name].append(data);
+			t = Timer(1.000, self.removeOutbound, [name])
+			t.start()
 
+	def removeOutbound(self, name):
+		if name in self.outbound and len(self.outbound[name]) > 0:
+			print "WebSocketIO> Warning: not sending message, recipient has no listener (" + name + ")"
+			del self.outbound[name][0]
+			if len(self.outbound[name]) == 0:
+				del self.outbound[name]
+
+	def emitString(self, name, dataString, attempts=16):
+		if name == None or name == "":
+			print "WebsocketIO> Error: no message name specified"
+			return
+
+		if name in self.remoteListeners:
+			alias = self.remoteListeners[name]
+			message = "{\"f\":\"" + alias + "\",\"d\":" + dataString + "}"
+			self.ws.write_message(message)
+		else:
+			if not name in self.outbound:
+				self.outbound[name] = [];
+			self.outbound[name].append(dataString);
+			t = Timer(1.000, self.removeOutbound, [name])
+			t.start()
 
 class WSIOHelper(tornado.websocket.WebSocketHandler):
 	clients = {}
-	connectionCallback = None
+	connectCallback = None
 
 	def __init__(self, *args, **kwargs):
 		super(WSIOHelper, self).__init__(*args, **kwargs)
@@ -110,14 +148,15 @@ class WSIOHelper(tornado.websocket.WebSocketHandler):
 	def open(self):
 		self.ws = WebSocketIO(self)
 		self.clients[self.ws.id] = self.ws
-		self.connectionCallback(self.ws)
+		self.connectCallback(self.ws)
 
 	def on_message(self, message):
 		self.ws.on_message(message)
 
 	def on_close(self):
+		if self.ws.closeCallback != None:
+			self.ws.closeCallback(self.ws)
 		del self.clients[self.ws.id]
-		print "WebSocketIO> socket closed"
 
 
 class WebSocketIOServer:
@@ -126,8 +165,8 @@ class WebSocketIOServer:
 		self.application = tornado.web.Application([(r"/", WSIOHelper),])
 		self.http_server = tornado.httpserver.HTTPServer(self.application)
 		self.ioloop = None
-		self.connectionCallback = None;
-		WSIOHelper.connectionCallback = self.newconnection;
+		self.connectionCallback = None
+		WSIOHelper.connectCallback = self.newconnection
 
 	def listen(self, port):
 		self.http_server.listen(port)
@@ -145,4 +184,10 @@ class WebSocketIOServer:
 		self.connectionCallback = callback
 
 	def broadcast(self, name, data):
-		print "TODO!"
+		if isinstance(data, np.ndarray):
+			for key in WSIOHelper.clients:
+				WSIOHelper.clients[key].emit(name, data)
+		else:
+			dataString = json.dumps(data)
+			for key in WSIOHelper.clients:
+				WSIOHelper.clients[key].emitString(name, dataString)

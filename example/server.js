@@ -31,6 +31,8 @@ function openWebSocketClient(wsio) {
 
 	wsio.on('requestStringMessage', wsRequestStringMessage);
 	wsio.on('requestBinaryMessage', wsRequestBinaryMessage);
+
+	wsioServer.broadcast('stringMessage', {broadcast: "test"});
 }
 
 function closeWebSocketClient(wsio) {

@@ -38,9 +38,10 @@ function WebSocketIO(ws, strictSSL, openCallback) {
 		this.ws = ws;
 
 	this.id = "";
-	
+
 	var _this = this;
 	this.messages = {};
+	this.outbound = {};
 	if (this.ws.readyState === 1) {
 		this.remoteAddress = {address: this.ws._socket.remoteAddress, port: this.ws._socket.remotePort};
 		this.id = this.remoteAddress.address + ":" + this.remoteAddress.port;
@@ -74,7 +75,18 @@ function WebSocketIO(ws, strictSSL, openCallback) {
 			// add lister to client
 			else if(fName === "#WSIO#addListener") {
 				_this.remoteListeners[msg.d.listener] = msg.d.alias;
-				return;
+				if (_this.outbound.hasOwnProperty(msg.d.listener)) {
+					var i;
+					for (i=0; i<_this.outbound[msg.d.listener].length; i++) {
+						if (typeof _this.outbound[msg.d.listener][i] === "string") {
+							_this.emitString(msg.d.listener, _this.outbound[msg.d.listener][i]);
+						}
+						else {
+							_this.emit(msg.d.listener, _this.outbound[msg.d.listener][i]);
+						}
+					}
+					delete _this.outbound[msg.d.listener];
+				}
 			}
 
 			// handle message
@@ -141,50 +153,65 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 
 		var _this = this;
 		var message;
-		var alias = this.remoteListeners[name];
-		if(alias === undefined) {
-			if(attempts === undefined) attempts = 16;
-			if(attempts >= 0) {
-				setImmediate(function() {
-					_this.emit(name, data, attempts-1);
-				});
+		var alias;
+
+		if (this.remoteListeners.hasOwnProperty(name)) {
+			alias = this.remoteListeners[name];
+			if (Buffer.isBuffer(data)) {
+				var funcName = new Buffer(alias);
+				message = Buffer.concat([funcName, data]);
+
+				// double error handling
+				try {
+					this.ws.send(message, {binary: true, mask: false}, function(err){
+						if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
+						// else success
+					});
+				}
+				catch(e) {
+					console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
+				}
 			}
 			else {
-				console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
-			}
-			return;
-		}
+				message = {f: alias, d: data};
 
-		// send binary data as array buffer
-		if (Buffer.isBuffer(data)) {
-			var funcName = new Buffer(alias);
-			message      = Buffer.concat([funcName, data]);
-
-			try {
-				this.ws.send(message, {binary: true, mask: false}, function(err){
-					if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
-					// else success
-				});
-			}
-			catch(e) {
-				console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
+				// double error handling
+				try {
+					var msgString = JSON.stringify(message);
+					this.ws.send(msgString, {binary: false, mask: false}, function(err){
+						if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
+						// else success
+					});
+				}
+				catch(e) {
+					console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
+				}
 			}
 		}
-		// send data as JSON string
 		else {
-			message = {f: alias, d: data};
+			if (!this.outbound.hasOwnProperty(name)) {
+				this.outbound[name] = [];
+			}
+			this.outbound[name].push(data);
+			setTimeout(function() {
+				_this.removeOutbound(name);
+			}, 1000);
+		}
+	}
+};
 
-			// double error handling
-			try {
-				var msgString = JSON.stringify(message);
-				this.ws.send(msgString, {binary: false, mask: false}, function(err){
-					if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
-					// else success
-				});
-			}
-			catch(e) {
-				console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
-			}
+/**
+* Removes outbound message from queue: called if no listener is registered after 1 sec
+*
+* @method removeOutbound
+* @param name {String} name of sending message
+*/
+WebSocketIO.prototype.removeOutbound = function(name) {
+	if (this.outbound.hasOwnProperty(name) && this.outbound[name].length > 0) {
+		console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
+		this.outbound[name].splice(0, 1);
+		if (this.outbound[name].length == 0) {
+			delete this.outbound[name];
 		}
 	}
 };
@@ -198,23 +225,24 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 WebSocketIO.prototype.emitString = function(name, dataString, attempts) {
 	if (this.ws.readyState === 1) {
 		var _this = this;
-		var alias = this.remoteListeners[name];
-		if(alias === undefined) {
-			if(attempts === undefined) attempts = 16;
-			if(attempts >= 0) {
-				setImmediate(function() {
-					_this.emitString(name, dataString, attempts-1);
-				});
-			}
-			else {
-				console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
-			}
-			return;
+		var message;
+		var alias;
+
+		if (this.remoteListeners.hasOwnProperty(name)) {
+			alias = this.remoteListeners[name];
+			message = "{\"f\":\"" + alias + "\",\"d\":" + dataString + "}";
+			this.ws.send(message, {binary: false, mask: false});
+
 		}
-
-		var message = "{\"f\":\""+alias+"\",\"d\":"+dataString+"}";
-
-		this.ws.send(message, {binary: false, mask: false});
+		else {
+			if (!this.outbound.hasOwnProperty(name)) {
+				this.outbound[name] = [];
+			}
+			this.outbound[name].push(dataString);
+			setTimeout(function() {
+				_this.removeOutbound(name);
+			}, 1000);
+		}
 	}
 };
 
@@ -274,20 +302,14 @@ WebSocketIOServer.prototype.broadcast = function(name, data) {
 	// send as binary buffer
 	if (Buffer.isBuffer(data)) {
 		for(key in this.clients) {
-			alias = this.clients[key].remoteListeners[name];
-			if(alias !== undefined) {
-				this.clients[key].emit(name, data);
-			}
+			this.clients[key].emit(name, data);
 		}
 	}
 	// send data as JSON string
 	else {
 		var dataString = JSON.stringify(data);
 		for(key in this.clients) {
-			alias = this.clients[key].remoteListeners[name];
-			if(alias !== undefined) {
-				this.clients[key].emitString(name, dataString);
-			}
+			this.clients[key].emitString(name, dataString);
 		}
 	}
 };
