@@ -53,7 +53,7 @@ class WebSocketIO:
 		if message == None:
 			self.on_close()
 		else:
-			if message.startswith('{') and message.endswith('}'):
+			if message[0] == '{' and (message[-1] == '}' or message[-2] == '}'): # may have null char after '}'
 				msg = json.loads(message)
 				if msg['f'] in self.localListeners:
 					fName = self.localListeners[msg['f']]
