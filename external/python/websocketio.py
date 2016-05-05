@@ -137,13 +137,21 @@ class WebSocketIO:
 			t = Timer(1.000, self.removeOutbound, [name])
 			t.start()
 
-class WSIOHelper(tornado.websocket.WebSocketHandler):
+class WSIOHandler(tornado.websocket.WebSocketHandler):
 	clients = {}
 	connectCallback = None
+	public = None
 
 	def __init__(self, *args, **kwargs):
-		super(WSIOHelper, self).__init__(*args, **kwargs)
+		super(WSIOHandler, self).__init__(*args, **kwargs)
 		self.ws = None
+
+	def get(self):
+		if self.request.headers.get("Upgrade", "").lower() == "websocket":
+			super(WSIOHandler, self).get()
+		else:
+			if self.public != None:
+				self.render(self.public + "/index.html")
 
 	def open(self):
 		self.ws = WebSocketIO(self)
@@ -161,12 +169,16 @@ class WSIOHelper(tornado.websocket.WebSocketHandler):
 
 class WebSocketIOServer:
 
-	def __init__(self):
-		self.application = tornado.web.Application([(r"/", WSIOHelper),])
+	def __init__(self, publicWebDirectory=None):
+		if publicWebDirectory == None:
+			self.application = tornado.web.Application([(r"/", WSIOHandler),])
+		else:
+			self.application = tornado.web.Application([(r"/", WSIOHandler), (r"/(.+)", tornado.web.StaticFileHandler, {'path': publicWebDirectory + "/"})])
 		self.http_server = tornado.httpserver.HTTPServer(self.application)
 		self.ioloop = None
 		self.connectionCallback = None
-		WSIOHelper.connectCallback = self.newconnection
+		WSIOHandler.connectCallback = self.newconnection
+		WSIOHandler.public = publicWebDirectory
 
 	def listen(self, port):
 		self.http_server.listen(port)
@@ -185,9 +197,9 @@ class WebSocketIOServer:
 
 	def broadcast(self, name, data):
 		if isinstance(data, np.ndarray):
-			for key in WSIOHelper.clients:
-				WSIOHelper.clients[key].emit(name, data)
+			for key in WSIOHandler.clients:
+				WSIOHandler.clients[key].emit(name, data)
 		else:
 			dataString = json.dumps(data)
-			for key in WSIOHelper.clients:
-				WSIOHelper.clients[key].emitString(name, dataString)
+			for key in WSIOHandler.clients:
+				WSIOHandler.clients[key].emitString(name, dataString)

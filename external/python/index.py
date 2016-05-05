@@ -18,7 +18,6 @@ def on_open(wsio):
 	bin = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.uint8);
 	wsio.emit('requestStringMessage', obj); # sends JSON object as string
 	wsio.emit('requestBinaryMessage', bin); # send uint8 array as binary buffer
-	wsio.emit('junkMessage', obj);
 
 def setupListeners(wsio):
 	wsio.on('stringMessage', stringMessage);
