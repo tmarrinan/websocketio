@@ -215,7 +215,7 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 */
 WebSocketIO.prototype.removeOutbound = function(name) {
 	if (this.outbound.hasOwnProperty(name) && this.outbound[name].length > 0) {
-		if (_this.logLevel != "quiet")
+		if (this.logLevel != "quiet")
 			console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
 		this.outbound[name].splice(0, 1);
 		if (this.outbound[name].length == 0) {
