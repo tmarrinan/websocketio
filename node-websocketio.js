@@ -31,7 +31,7 @@ var WebSocketServer = WebSocket.Server;
  * @param strictSSL {Bool} require or not SSL verification with a certiifcate
  * @param openCallback {Function} callback when the socket opens
  */
-function WebSocketIO(ws, strictSSL, openCallback) {
+function WebSocketIO(ws, strictSSL, openCallback, logLevel) {
 	if (typeof ws === "string")
 		this.ws = new WebSocket(ws, null, {rejectUnauthorized: strictSSL});
 	else
@@ -49,6 +49,7 @@ function WebSocketIO(ws, strictSSL, openCallback) {
 
 	this.closeCallbacks = [];
 	this.aliasCount = 1;
+	this.logLevel = logLevel || "quiet"
 	this.remoteListeners = {"#WSIO#addListener": "0000"};
 	this.localListeners = {"0000": "#WSIO#addListener"};
 
@@ -69,7 +70,8 @@ function WebSocketIO(ws, strictSSL, openCallback) {
 			var msg = JSON.parse(message);
 			fName = _this.localListeners[msg.f];
 			if(fName === undefined) {
-				console.log("WebsocketIO>\tno handler for message");
+				if (_this.logLevel != "quiet")
+					console.log("WebsocketIO>\tno handler for message");
 			}
 
 			// add lister to client
@@ -147,7 +149,8 @@ WebSocketIO.prototype.on = function(name, callback) {
 WebSocketIO.prototype.emit = function(name, data, attempts) {
 	if (this.ws.readyState === 1) {
 		if (name === null || name === "") {
-			console.log("WebsocketIO>\tError, no message name specified");
+			if (this.logLevel != "quiet")
+				console.log("WebsocketIO>\tError, no message name specified");
 			return;
 		}
 
@@ -164,12 +167,14 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 				// double error handling
 				try {
 					this.ws.send(message, {binary: true, mask: false}, function(err){
-						if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
-						// else success
+						if (_this.logLevel != "quiet")
+							if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
+							// else success
 					});
 				}
 				catch(e) {
-					console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
+					if (_this.logLevel != "quiet")
+						console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
 				}
 			}
 			else {
@@ -179,12 +184,14 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 				try {
 					var msgString = JSON.stringify(message);
 					this.ws.send(msgString, {binary: false, mask: false}, function(err){
-						if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
-						// else success
+						if (_this.logLevel != "quiet")
+							if(err) console.log("WebsocketIO>\t---ERROR (ws.send)---", name);
+							// else success
 					});
 				}
 				catch(e) {
-					console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
+					if (_this.logLevel != "quiet")
+						console.log("WebsocketIO>\t---ERROR (try-catch)---", name);
 				}
 			}
 		}
@@ -208,7 +215,8 @@ WebSocketIO.prototype.emit = function(name, data, attempts) {
 */
 WebSocketIO.prototype.removeOutbound = function(name) {
 	if (this.outbound.hasOwnProperty(name) && this.outbound[name].length > 0) {
-		console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
+		if (_this.logLevel != "quiet")
+			console.log("WebsocketIO>\tWarning: not sending message, recipient has no listener (" + name + ")");
 		this.outbound[name].splice(0, 1);
 		if (this.outbound[name].length == 0) {
 			delete this.outbound[name];
@@ -274,6 +282,7 @@ function WebSocketIOServer(data) {
 		this.wss = new WebSocketServer({port: data.port, perMessageDeflate: false});
 
 	this.clients = {};
+	this.logLevel = data.logLevel || "quiet";
 }
 
 /**
@@ -287,7 +296,7 @@ WebSocketIOServer.prototype.onconnection = function(callback) {
 	this.wss.on('connection', function(ws) {
 		ws.binaryType = "arraybuffer";
 
-		var wsio = new WebSocketIO(ws);
+		var wsio = new WebSocketIO(ws, null, null, this.logLevel);
 		wsio.onclose(function(closed) {
 			delete _this.clients[closed.id];
 		});

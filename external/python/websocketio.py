@@ -9,7 +9,7 @@ import numpy as np
 from threading import Timer
 
 class WebSocketIO:
-	def __init__(self, address):
+	def __init__(self, address, logLevel="quiet"):
 		self.ws = None
 		self.address = None
 		self.id = None
@@ -19,6 +19,7 @@ class WebSocketIO:
 		self.messages = {}
 		self.outbound = {}
 		self.aliasCount = 1
+		self.logLevel = logLevel;
 		self.remoteListeners = {"#WSIO#addListener": "0000"}
 		self.localListeners = {"0000": "#WSIO#addListener"}
 		if isinstance(address, str):
@@ -41,7 +42,8 @@ class WebSocketIO:
 		self.closeCallback = callback;
     
 	def on_open(self, ws):
-		print "WebSocketIO> connected to " + self.address
+		if self.logLevel != "quiet":
+			print "WebSocketIO> connected to " + self.address
 		self.ws = ws.result()
 		self.ws.on_message = self.on_message
 		remoteAddress = self.ws.stream.socket.getpeername()
@@ -69,7 +71,8 @@ class WebSocketIO:
 					else:
 						self.messages[fName](self, msg['d']);
 				else:
-					print "WebSocketIO> No handler for message"
+					if self.logLevel != "quiet":
+						print "WebSocketIO> No handler for message"
 
 			else:
 				data = np.fromstring(message, dtype=np.uint8, count=len(message))
@@ -79,7 +82,8 @@ class WebSocketIO:
 				self.messages[fName](self, buf)
 
 	def on_close(self):
-		print "WebSocketIO> socket closed"
+		if self.logLevel != "quiet":
+			print "WebSocketIO> socket closed"
 		if self.closeCallback != None:
 			self.closeCallback(self)
 		self.ioloop.stop()
@@ -95,7 +99,8 @@ class WebSocketIO:
 
 	def emit(self, name, data):
 		if name == None or name == "":
-			print "WebSocketIO> Error: no message name specified"
+			if self.logLevel != "quiet":
+				print "WebSocketIO> Error: no message name specified"
 			return
 
 		if name in self.remoteListeners:
@@ -116,14 +121,16 @@ class WebSocketIO:
 
 	def removeOutbound(self, name):
 		if name in self.outbound and len(self.outbound[name]) > 0:
-			print "WebSocketIO> Warning: not sending message, recipient has no listener (" + name + ")"
+			if self.logLevel != "quiet":
+				print "WebSocketIO> Warning: not sending message, recipient has no listener (" + name + ")"
 			del self.outbound[name][0]
 			if len(self.outbound[name]) == 0:
 				del self.outbound[name]
 
 	def emitString(self, name, dataString, attempts=16):
 		if name == None or name == "":
-			print "WebsocketIO> Error: no message name specified"
+			if self.logLevel != "quiet":
+				print "WebsocketIO> Error: no message name specified"
 			return
 
 		if name in self.remoteListeners:
@@ -140,7 +147,8 @@ class WebSocketIO:
 class WSIOHandler(tornado.websocket.WebSocketHandler):
 	clients = {}
 	connectCallback = None
-	public = None
+	indexPath = None
+	logLevel = "quiet"
 
 	def __init__(self, *args, **kwargs):
 		super(WSIOHandler, self).__init__(*args, **kwargs)
@@ -150,11 +158,11 @@ class WSIOHandler(tornado.websocket.WebSocketHandler):
 		if self.request.headers.get("Upgrade", "").lower() == "websocket":
 			super(WSIOHandler, self).get()
 		else:
-			if self.public != None:
-				self.render(self.public + "/index.html")
+			if self.indexPath != None:
+				self.render(self.indexPath + "index.html")
 
 	def open(self):
-		self.ws = WebSocketIO(self)
+		self.ws = WebSocketIO(self, self.logLevel)
 		self.clients[self.ws.id] = self.ws
 		self.connectCallback(self.ws)
 
@@ -169,16 +177,17 @@ class WSIOHandler(tornado.websocket.WebSocketHandler):
 
 class WebSocketIOServer:
 
-	def __init__(self, publicWebDirectory=None):
-		if publicWebDirectory == None:
+	def __init__(self, handles=None, indexPath=None, logLevel="quiet"):
+		if handles == None:
 			self.application = tornado.web.Application([(r"/", WSIOHandler),])
 		else:
-			self.application = tornado.web.Application([(r"/", WSIOHandler), (r"/(.+)", tornado.web.StaticFileHandler, {'path': publicWebDirectory + "/"})])
+			self.application = tornado.web.Application([(r"/", WSIOHandler),] + handles)
 		self.http_server = tornado.httpserver.HTTPServer(self.application)
 		self.ioloop = None
 		self.connectionCallback = None
 		WSIOHandler.connectCallback = self.newconnection
-		WSIOHandler.public = publicWebDirectory
+		WSIOHandler.indexPath = indexPath
+		WSIOHandler.logLevel = logLevel
 
 	def listen(self, port):
 		self.http_server.listen(port)

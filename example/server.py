@@ -17,8 +17,10 @@ if len(sys.argv) > 1:
 def main():
 	global wss
 	
+	publicDir = current + "/public/"
+	tornadoWebSerever = [(r"/(.*)", tornado.web.StaticFileHandler, {'path': publicDir}),]
 	#wss = WebSocketIOServer()
-	wss = WebSocketIOServer(publicWebDirectory=current+"/public")
+	wss = WebSocketIOServer(handles=tornadoWebSerever, indexPath=publicDir)
 	wss.onconnection(on_connection)
 
 	print "Now listening on port " + str(port)
