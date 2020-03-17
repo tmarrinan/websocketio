@@ -97,12 +97,13 @@ function WebSocketIO(ws, strictSSL, openCallback, logLevel) {
 			}
 		}
 		else {
-			var func  = String.fromCharCode(message[0]) +
-						String.fromCharCode(message[1]) +
-						String.fromCharCode(message[2]) +
-						String.fromCharCode(message[3]);
+			var bufmessage = Buffer.from(message);
+			var func  = String.fromCharCode(bufmessage[0]) +
+						String.fromCharCode(bufmessage[1]) +
+						String.fromCharCode(bufmessage[2]) +
+						String.fromCharCode(bufmessage[3]);
 			fName = _this.localListeners[func];
-			var buf = message.slice(4, message.length);
+			var buf = bufmessage.slice(4, bufmessage.length);
 			_this.messages[fName](_this, buf);
 		}
 	});

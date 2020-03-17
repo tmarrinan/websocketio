@@ -70,5 +70,5 @@ function wsRequestBinaryMessage(wsio, data) {
 
 
 // start the HTTP server
-server.listen(8000, "0.0.0.0");
-console.log("Now listening on port 8000");
+server.listen(8080, "0.0.0.0");
+console.log("Now listening on port 8080");
