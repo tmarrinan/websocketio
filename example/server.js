@@ -63,7 +63,7 @@ function wsRequestBinaryMessage(wsio, data) {
 	for (i=0; i<data.length; i++) {
 		triple.push(Math.min(3*data[i], 255));
 	}
-	var message = new Buffer(triple);
+	var message = Buffer.from(triple);
 
 	wsio.emit('binaryMessage', message);
 }
