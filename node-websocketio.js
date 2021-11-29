@@ -324,7 +324,7 @@ class WebSocketIOServer {
      */
     onconnection(callback) {
         this.wss.on('connection', (ws) => {
-            ws.binaryType = "arraybuffer";
+            ws.binaryType = 'arraybuffer';
 
             let wsio = new WebSocketIO(ws, null, null, this.logLevel);
             wsio.onclose((closed) => {
