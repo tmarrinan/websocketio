@@ -15,7 +15,7 @@ const WebSocketServer = WebSocket.Server;
  * Client socket object
  *
  * @class WebsocketIO
- */ 
+ */
 class WebSocketIO {
     /**
      * @constructor
